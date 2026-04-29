@@ -48,4 +48,24 @@ router.delete('/:id', auth(['Admin']), async (req: AuthRequest, res: Response): 
   res.json({ message: 'Deleted' });
 });
 
+router.get('/summary', auth(['Admin', 'PM', 'Developer']), async (req: AuthRequest, res: Response): Promise<void> => {
+  await poolConnect;
+
+  const projects = await pool.request().query(`SELECT COUNT(*) as total FROM projects WHERE status = 'Active'`);
+  const tasks = await pool.request().query(`SELECT COUNT(*) as total FROM tasks WHERE status != 'Done'`);
+  const hours = await pool.request().query(`
+    SELECT ISNULL(SUM(hours_logged), 0) as total 
+    FROM timesheets 
+    WHERE log_date >= DATEADD(day, -7, GETDATE())
+  `);
+  const approvals = await pool.request().query(`SELECT COUNT(*) as total FROM projects WHERE status = 'Draft'`);
+
+  res.json({
+    activeProjects: projects.recordset[0].total,
+    openTasks: tasks.recordset[0].total,
+    hoursThisWeek: hours.recordset[0].total,
+    pendingApprovals: approvals.recordset[0].total
+  });
+});
+
 export default router;

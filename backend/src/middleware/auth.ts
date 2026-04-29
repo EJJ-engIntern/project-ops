@@ -23,7 +23,6 @@ export function auth(roles: Role[] = []) {
       next();
     } catch {
       res.status(401).json({ message: 'Invalid token' });
-      return;
     }
   };
 }

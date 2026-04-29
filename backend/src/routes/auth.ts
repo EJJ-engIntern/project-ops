@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool, poolConnect, sql } from '../config/db';
 import { Role } from '../types';
@@ -11,15 +10,14 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     name: string; email: string; password: string; role: Role; target_hours: number;
   };
   await poolConnect;
-  const hash = await bcrypt.hash(password, 10);
   try {
     await pool.request()
       .input('name', sql.NVarChar, name)
       .input('email', sql.NVarChar, email)
-      .input('password_hash', sql.NVarChar, hash)
+      .input('password', sql.NVarChar, password)
       .input('role', sql.NVarChar, role ?? 'Developer')
       .input('target_hours', sql.Int, target_hours ?? 40)
-      .query('INSERT INTO users (name,email,password_hash,role,target_hours) VALUES (@name,@email,@password_hash,@role,@target_hours)');
+      .query('INSERT INTO users (name,email,password_hash,role,target_hours) VALUES (@name,@email,@password,@role,@target_hours)');
     res.status(201).json({ message: 'User created' });
   } catch (e: unknown) {
     res.status(400).json({ message: (e as Error).message });
@@ -33,7 +31,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     .input('email', sql.NVarChar, email)
     .query('SELECT * FROM users WHERE email = @email');
   const user = result.recordset[0];
-  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+  if (!user || user.password_hash !== password) {
     res.status(401).json({ message: 'Invalid credentials' });
     return;
   }
