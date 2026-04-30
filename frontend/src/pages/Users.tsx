@@ -1,18 +1,16 @@
 import { useEffect, useState, FormEvent } from 'react';
-import {
-  Box, Typography, Button, TextField, Table, TableHead, TableRow,
-  TableCell, TableBody, Paper, Chip, Dialog, DialogTitle,
-  DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem
-} from '@mui/material';
 import api from '../api/axios';
 import { UserRecord, Role } from '../types';
+import Badge from '../components/Badge';
+import Modal from '../components/Modal';
+
+const roleBadge = (r: string) =>
+  r === 'Admin' ? 'red' : r === 'PM' ? 'yellow' : 'blue';
 
 export default function Users() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [open, setOpen]   = useState(false);
-  const [form, setForm]   = useState({
-    name: '', email: '', password: '', role: 'Developer' as Role, target_hours: 40
-  });
+  const [form, setForm]   = useState({ name: '', email: '', password: '', role: 'Developer' as Role, target_hours: 40 });
 
   const load = () => api.get<UserRecord[]>('/users').then(r => setUsers(r.data));
   useEffect(() => { load(); }, []);
@@ -32,71 +30,82 @@ export default function Users() {
   };
 
   return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6" fontWeight={600}>Users</Typography>
-        <Button variant="contained" size="small" onClick={() => setOpen(true)}>+ New User</Button>
-      </Box>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-xl font-semibold text-gray-900">Users</h2>
+        <button onClick={() => setOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+          + New User
+        </button>
+      </div>
 
-      <Paper variant="outlined">
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Target hrs</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              {['Name', 'Email', 'Role', 'Target hrs', ''].map((h, i) => (
+                <th key={i} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
             {users.map(u => (
-              <TableRow key={u.id} hover>
-                <TableCell>{u.name}</TableCell>
-                <TableCell>{u.email}</TableCell>
-                <TableCell>
-                  <Chip label={u.role} size="small"
-                    color={u.role === 'Admin' ? 'error' : u.role === 'PM' ? 'warning' : 'default'} />
-                </TableCell>
-                <TableCell>{u.target_hours}</TableCell>
-                <TableCell>
-                  <Button size="small" color="error" onClick={() => handleDelete(u.id)}>Remove</Button>
-                </TableCell>
-              </TableRow>
+              <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3 font-medium text-gray-900">{u.name}</td>
+                <td className="px-4 py-3 text-gray-600">{u.email}</td>
+                <td className="px-4 py-3"><Badge label={u.role} color={roleBadge(u.role) as any} /></td>
+                <td className="px-4 py-3 text-gray-600">{u.target_hours}h</td>
+                <td className="px-4 py-3">
+                  <button onClick={() => handleDelete(u.id)}
+                    className="text-red-500 hover:text-red-700 text-sm font-medium transition-colors">
+                    Remove
+                  </button>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
-      </Paper>
+          </tbody>
+        </table>
+      </div>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>New User</DialogTitle>
-        <Box component="form" onSubmit={handleCreate}>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField label="Name" size="small" fullWidth required
-              value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-            <TextField label="Email" type="email" size="small" fullWidth required
-              value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-            <TextField label="Password" type="password" size="small" fullWidth required
-              value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-            <FormControl size="small" fullWidth>
-              <InputLabel>Role</InputLabel>
-              <Select label="Role" value={form.role}
-                onChange={e => setForm({ ...form, role: e.target.value as Role })}>
-                <MenuItem value="Admin">Admin</MenuItem>
-                <MenuItem value="PM">PM</MenuItem>
-                <MenuItem value="Developer">Developer</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField label="Target hours / week" type="number" size="small" fullWidth
-              value={form.target_hours}
-              onChange={e => setForm({ ...form, target_hours: Number(e.target.value) })} />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained">Create</Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
-    </Box>
+      <Modal open={open} onClose={() => setOpen(false)} title="New User">
+        <form onSubmit={handleCreate} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input type="password" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.role} onChange={e => setForm({ ...form, role: e.target.value as Role })}>
+              <option>Admin</option>
+              <option>PM</option>
+              <option>Developer</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Target hours / week</label>
+            <input type="number" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.target_hours} onChange={e => setForm({ ...form, target_hours: Number(e.target.value) })} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setOpen(false)}
+              className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button type="submit"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create</button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 }

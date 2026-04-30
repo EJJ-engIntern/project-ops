@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Box, Typography, Paper, Grid, CircularProgress } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 
@@ -21,38 +20,32 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const cards = summary
-    ? [
-        { label: 'Active Projects',    value: summary.activeProjects },
-        { label: 'Open Tasks',         value: summary.openTasks },
-        { label: 'Hours This Week',    value: summary.hoursThisWeek },
-        { label: 'Pending Approvals',  value: summary.pendingApprovals },
-      ]
-    : [];
+  const cards = summary ? [
+    { label: 'Active Projects',   value: summary.activeProjects,   color: 'bg-blue-50 border-blue-200' },
+    { label: 'Open Tasks',        value: summary.openTasks,        color: 'bg-yellow-50 border-yellow-200' },
+    { label: 'Hours This Week',   value: summary.hoursThisWeek,    color: 'bg-green-50 border-green-200' },
+    { label: 'Pending Approvals', value: summary.pendingApprovals, color: 'bg-red-50 border-red-200' },
+  ] : [];
 
   return (
-    <Box p={3}>
-      <Typography variant="h6" fontWeight={600} mb={1}>Dashboard</Typography>
-      <Typography color="text.secondary" fontSize={13} mb={3}>
-        Welcome back, {user?.name} · {user?.role}
-      </Typography>
+    <div className="p-6">
+      <h2 className="text-xl font-semibold text-gray-900 mb-1">Dashboard</h2>
+      <p className="text-sm text-gray-500 mb-6">Welcome back, {user?.name} · {user?.role}</p>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" mt={6}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center mt-16">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
       ) : (
-        <Grid container spacing={2}>
-          {cards.map(card => (
-            <Grid item xs={12} sm={6} md={3} key={card.label}>
-              <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography fontSize={12} color="text.secondary">{card.label}</Typography>
-                <Typography variant="h4" fontWeight={500} mt={0.5}>{card.value}</Typography>
-              </Paper>
-            </Grid>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {cards.map(c => (
+            <div key={c.label} className={`border rounded-xl p-5 ${c.color}`}>
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-2">{c.label}</p>
+              <p className="text-4xl font-bold text-gray-800">{c.value}</p>
+            </div>
           ))}
-        </Grid>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

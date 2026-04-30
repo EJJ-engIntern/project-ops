@@ -3,10 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Role } from '../types';
 import { ReactNode } from 'react';
 
-interface Props {
-  children: ReactNode;
-  roles?: Role[];
-}
+interface Props { children: ReactNode; roles?: Role[]; }
 
 export default function ProtectedRoute({ children, roles }: Props) {
   const { user } = useAuth();

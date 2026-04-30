@@ -1,11 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react';
-import {
-  Box, Typography, Button, TextField, Table, TableHead, TableRow,
-  TableCell, TableBody, Paper, Dialog, DialogTitle, DialogContent,
-  DialogActions, FormControl, InputLabel, Select, MenuItem
-} from '@mui/material';
 import api from '../api/axios';
 import { Timesheet, Task } from '../types';
+import Modal from '../components/Modal';
 
 export default function Timesheets() {
   const [entries, setEntries] = useState<Timesheet[]>([]);
@@ -28,66 +24,68 @@ export default function Timesheets() {
   };
 
   return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6" fontWeight={600}>Timesheets</Typography>
-        <Button variant="contained" size="small" onClick={() => setOpen(true)}>+ Log Hours</Button>
-      </Box>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-xl font-semibold text-gray-900">Timesheets</h2>
+        <button onClick={() => setOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+          + Log Hours
+        </button>
+      </div>
 
-      <Paper variant="outlined">
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Task</TableCell>
-              <TableCell>Member</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Hours</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              {['Task', 'Member', 'Date', 'Hours'].map(h => (
+                <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
             {entries.map(e => (
-              <TableRow key={e.id} hover>
-                <TableCell>{e.task_title}</TableCell>
-                <TableCell>{e.user_name}</TableCell>
-                <TableCell>{e.log_date?.split('T')[0]}</TableCell>
-                <TableCell>{e.hours_logged}</TableCell>
-              </TableRow>
+              <tr key={e.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3 font-medium text-gray-900">{e.task_title}</td>
+                <td className="px-4 py-3 text-gray-600">{e.user_name}</td>
+                <td className="px-4 py-3 text-gray-600">{e.log_date?.split('T')[0]}</td>
+                <td className="px-4 py-3 text-gray-600">{e.hours_logged}</td>
+              </tr>
             ))}
             {entries.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ color: 'text.secondary', py: 4 }}>
-                  No entries yet.
-                </TableCell>
-              </TableRow>
+              <tr><td colSpan={4} className="text-center py-10 text-gray-400">No entries yet.</td></tr>
             )}
-          </TableBody>
-        </Table>
-      </Paper>
+          </tbody>
+        </table>
+      </div>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Log Hours</DialogTitle>
-        <Box component="form" onSubmit={handleLog}>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControl size="small" fullWidth required>
-              <InputLabel>Task</InputLabel>
-              <Select label="Task" value={form.task_id}
-                onChange={e => setForm({ ...form, task_id: e.target.value })}>
-                {tasks.map(t => <MenuItem key={t.id} value={t.id}>{t.title}</MenuItem>)}
-              </Select>
-            </FormControl>
-            <TextField label="Date" type="date" size="small" fullWidth required
-              InputLabelProps={{ shrink: true }}
-              value={form.log_date} onChange={e => setForm({ ...form, log_date: e.target.value })} />
-            <TextField label="Hours" type="number" size="small" fullWidth required
-              inputProps={{ step: 0.5 }}
-              value={form.hours_logged} onChange={e => setForm({ ...form, hours_logged: e.target.value })} />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained">Log</Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
-    </Box>
+      <Modal open={open} onClose={() => setOpen(false)} title="Log Hours">
+        <form onSubmit={handleLog} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Task</label>
+            <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.task_id} onChange={e => setForm({ ...form, task_id: e.target.value })} required>
+              <option value="">Select task</option>
+              {tasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input type="date" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.log_date} onChange={e => setForm({ ...form, log_date: e.target.value })} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hours</label>
+            <input type="number" step="0.5" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.hours_logged} onChange={e => setForm({ ...form, hours_logged: e.target.value })} required />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setOpen(false)}
+              className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button type="submit"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Log</button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 }

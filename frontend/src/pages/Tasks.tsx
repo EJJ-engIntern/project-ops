@@ -1,29 +1,23 @@
 import { useEffect, useState, FormEvent } from 'react';
-import {
-  Box, Typography, Button, TextField, Table, TableHead, TableRow,
-  TableCell, TableBody, Paper, Chip, Dialog, DialogTitle,
-  DialogContent, DialogActions, MenuItem, Select, FormControl, InputLabel
-} from '@mui/material';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { Task, Project, UserRecord } from '../types';
+import Badge from '../components/Badge';
+import Modal from '../components/Modal';
 
-const statusColor = (s: string) =>
-  s === 'Done' ? 'success' : s === 'In Progress' ? 'primary' : 'default';
+const statusBadge = (s: string) =>
+  s === 'Done' ? 'green' : s === 'In Progress' ? 'blue' : 'gray';
 
 export default function Tasks() {
-  const { user }  = useAuth();
+  const { user } = useAuth();
   const [tasks, setTasks]       = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers]       = useState<UserRecord[]>([]);
   const [open, setOpen]         = useState(false);
-  const [form, setForm] = useState({
-    project_id: '', assignee_id: '', title: '', estimated_hours: ''
-  });
+  const [form, setForm] = useState({ project_id: '', assignee_id: '', title: '', estimated_hours: '' });
   const canCreate = user?.role === 'Admin' || user?.role === 'PM';
 
   const load = () => api.get<Task[]>('/tasks').then(r => setTasks(r.data));
-
   useEffect(() => {
     load();
     api.get<Project[]>('/projects').then(r => setProjects(r.data));
@@ -44,88 +38,90 @@ export default function Tasks() {
   };
 
   return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6" fontWeight={600}>Tasks</Typography>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-xl font-semibold text-gray-900">Tasks</h2>
         {canCreate && (
-          <Button variant="contained" size="small" onClick={() => setOpen(true)}>+ New Task</Button>
+          <button onClick={() => setOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+            + New Task
+          </button>
         )}
-      </Box>
+      </div>
 
-      <Paper variant="outlined">
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Title</TableCell>
-              <TableCell>Project</TableCell>
-              <TableCell>Assignee</TableCell>
-              <TableCell>Est. hrs</TableCell>
-              <TableCell>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              {['Title', 'Project', 'Assignee', 'Est. hrs', 'Status'].map(h => (
+                <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
             {tasks.map(t => (
-              <TableRow key={t.id} hover>
-                <TableCell>{t.title}</TableCell>
-                <TableCell>{t.project_name}</TableCell>
-                <TableCell>{t.assignee_name}</TableCell>
-                <TableCell>{t.estimated_hours}</TableCell>
-                <TableCell>
+              <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3 font-medium text-gray-900">{t.title}</td>
+                <td className="px-4 py-3 text-gray-600">{t.project_name}</td>
+                <td className="px-4 py-3 text-gray-600">{t.assignee_name}</td>
+                <td className="px-4 py-3 text-gray-600">{t.estimated_hours}</td>
+                <td className="px-4 py-3">
                   {canCreate || t.assignee_id === user?.id ? (
-                    <Select size="small" value={t.status}
-                      onChange={e => updateStatus(t.id, e.target.value)}
-                      sx={{ fontSize: 13 }}>
-                      <MenuItem value="Todo">Todo</MenuItem>
-                      <MenuItem value="In Progress">In Progress</MenuItem>
-                      <MenuItem value="Done">Done</MenuItem>
-                    </Select>
+                    <select value={t.status} onChange={e => updateStatus(t.id, e.target.value)}
+                      className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option>Todo</option>
+                      <option>In Progress</option>
+                      <option>Done</option>
+                    </select>
                   ) : (
-                    <Chip label={t.status} size="small" color={statusColor(t.status) as any} />
+                    <Badge label={t.status} color={statusBadge(t.status) as any} />
                   )}
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ))}
             {tasks.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ color: 'text.secondary', py: 4 }}>
-                  No tasks yet.
-                </TableCell>
-              </TableRow>
+              <tr><td colSpan={5} className="text-center py-10 text-gray-400">No tasks yet.</td></tr>
             )}
-          </TableBody>
-        </Table>
-      </Paper>
+          </tbody>
+        </table>
+      </div>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>New Task</DialogTitle>
-        <Box component="form" onSubmit={handleCreate}>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControl size="small" fullWidth required>
-              <InputLabel>Project</InputLabel>
-              <Select label="Project" value={form.project_id}
-                onChange={e => setForm({ ...form, project_id: e.target.value })}>
-                {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
-              </Select>
-            </FormControl>
-            <FormControl size="small" fullWidth required>
-              <InputLabel>Assignee</InputLabel>
-              <Select label="Assignee" value={form.assignee_id}
-                onChange={e => setForm({ ...form, assignee_id: e.target.value })}>
-                {users.map(u => <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>)}
-              </Select>
-            </FormControl>
-            <TextField label="Task title" size="small" fullWidth required
-              value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
-            <TextField label="Estimated hours" type="number" size="small" fullWidth
-              value={form.estimated_hours}
-              onChange={e => setForm({ ...form, estimated_hours: e.target.value })} />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained">Create</Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
-    </Box>
+      <Modal open={open} onClose={() => setOpen(false)} title="New Task">
+        <form onSubmit={handleCreate} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+            <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.project_id} onChange={e => setForm({ ...form, project_id: e.target.value })} required>
+              <option value="">Select project</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Assignee</label>
+            <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.assignee_id} onChange={e => setForm({ ...form, assignee_id: e.target.value })} required>
+              <option value="">Select assignee</option>
+              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Estimated hours</label>
+            <input type="number" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.estimated_hours} onChange={e => setForm({ ...form, estimated_hours: e.target.value })} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setOpen(false)}
+              className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button type="submit"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create</button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 }

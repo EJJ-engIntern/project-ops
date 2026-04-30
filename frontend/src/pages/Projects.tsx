@@ -1,18 +1,15 @@
 import { useEffect, useState, FormEvent } from 'react';
-import {
-  Box, Typography, Button, TextField, Table, TableHead,
-  TableRow, TableCell, TableBody, Paper, Chip, Dialog,
-  DialogTitle, DialogContent, DialogActions
-} from '@mui/material';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { Project } from '../types';
+import Badge from '../components/Badge';
+import Modal from '../components/Modal';
 
-const healthColor = (h: string) =>
-  h === 'Good' ? 'success' : h === 'At Risk' ? 'warning' : 'error';
+const healthBadge = (h: string) =>
+  h === 'Good' ? 'green' : h === 'At Risk' ? 'yellow' : 'red';
 
-const statusColor = (s: string) =>
-  s === 'Active' ? 'primary' : s === 'Completed' ? 'success' : 'default';
+const statusBadge = (s: string) =>
+  s === 'Active' ? 'blue' : s === 'Completed' ? 'green' : 'gray';
 
 export default function Projects() {
   const { user } = useAuth();
@@ -33,68 +30,63 @@ export default function Projects() {
   };
 
   return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6" fontWeight={600}>Projects</Typography>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-xl font-semibold text-gray-900">Projects</h2>
         {canCreate && (
-          <Button variant="contained" size="small" onClick={() => setOpen(true)}>
+          <button onClick={() => setOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors">
             + New Project
-          </Button>
+          </button>
         )}
-      </Box>
+      </div>
 
-      <Paper variant="outlined">
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Health</TableCell>
-              <TableCell>Start Date</TableCell>
-              <TableCell>PM</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              {['Name', 'Status', 'Health', 'Start Date', 'PM'].map(h => (
+                <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
             {projects.map(p => (
-              <TableRow key={p.id} hover>
-                <TableCell>{p.name}</TableCell>
-                <TableCell>
-                  <Chip label={p.status} size="small" color={statusColor(p.status) as any} />
-                </TableCell>
-                <TableCell>
-                  <Chip label={p.health} size="small" color={healthColor(p.health) as any} />
-                </TableCell>
-                <TableCell>{p.start_date?.split('T')[0]}</TableCell>
-                <TableCell>{p.pm_name ?? '—'}</TableCell>
-              </TableRow>
+              <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3 font-medium text-gray-900">{p.name}</td>
+                <td className="px-4 py-3"><Badge label={p.status} color={statusBadge(p.status) as any} /></td>
+                <td className="px-4 py-3"><Badge label={p.health} color={healthBadge(p.health) as any} /></td>
+                <td className="px-4 py-3 text-gray-600">{p.start_date?.split('T')[0]}</td>
+                <td className="px-4 py-3 text-gray-600">{p.pm_name ?? '—'}</td>
+              </tr>
             ))}
             {projects.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ color: 'text.secondary', py: 4 }}>
-                  No projects yet.
-                </TableCell>
-              </TableRow>
+              <tr><td colSpan={5} className="text-center py-10 text-gray-400">No projects yet.</td></tr>
             )}
-          </TableBody>
-        </Table>
-      </Paper>
+          </tbody>
+        </table>
+      </div>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>New Project</DialogTitle>
-        <Box component="form" onSubmit={handleCreate}>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField label="Project name" size="small" fullWidth required
-              value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-            <TextField label="Start date" type="date" size="small" fullWidth
-              InputLabelProps={{ shrink: true }}
+      <Modal open={open} onClose={() => setOpen(false)} title="New Project">
+        <form onSubmit={handleCreate} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Project name</label>
+            <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start date</label>
+            <input type="date" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained">Create</Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
-    </Box>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setOpen(false)}
+              className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button type="submit"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create</button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 }
