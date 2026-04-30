@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { auth, AuthRequest } from '../middleware/auth';
 import { pool, poolConnect, sql } from '../config/db';
+import { Router, Request, Response } from 'express';
 
 const router = Router();
 
@@ -21,12 +22,32 @@ router.post('/', auth(['Admin', 'PM']), async (req: AuthRequest, res: Response):
   const { name, start_date, pm_id } = req.body as { name: string; start_date: string; pm_id: number };
   await poolConnect;
   const pid = req.user!.role === 'PM' ? req.user!.id : pm_id;
-  await pool.request()
+
+  const result = await pool.request()
     .input('name', sql.NVarChar, name)
     .input('start_date', sql.Date, start_date)
     .input('pm_id', sql.Int, pid)
-    .query('INSERT INTO projects (name,start_date,pm_id) VALUES (@name,@start_date,@pm_id)');
-  res.status(201).json({ message: 'Project created' });
+    .query('INSERT INTO projects (name,start_date,pm_id) OUTPUT INSERTED.id VALUES (@name,@start_date,@pm_id)');
+
+  const newProjectId = result.recordset[0].id;
+
+  // Fire Power Automate webhook (non-blocking)
+  const PA_WEBHOOK_URL = process.env.PA_WEBHOOK_URL;
+  if (PA_WEBHOOK_URL) {
+    fetch(PA_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: newProjectId,
+        projectName: name,
+        submittedBy: req.user!.name,
+        startDate: start_date,
+        approvalCallbackUrl: `${process.env.BACKEND_URL}/api/projects/webhooks/approval`
+      })
+    }).catch(err => console.error('PA webhook failed:', err));
+  }
+
+  res.status(201).json({ message: 'Project created', projectId: newProjectId });
 });
 
 router.patch('/:id', auth(['Admin', 'PM']), async (req: AuthRequest, res: Response): Promise<void> => {
@@ -66,6 +87,26 @@ router.get('/summary', auth(['Admin', 'PM', 'Developer']), async (req: AuthReque
     hoursThisWeek: hours.recordset[0].total,
     pendingApprovals: approvals.recordset[0].total
   });
+});
+
+// POST /api/webhooks/approval — called by Power Automate when admin approves
+router.post('/webhooks/approval', async (req: Request, res: Response): Promise<void> => {
+  const { projectId, action } = req.body as { projectId: number; action: 'approve' | 'reject' };
+  await poolConnect;
+
+  if (action === 'approve') {
+    await pool.request()
+      .input('id', sql.Int, projectId)
+      .query(`UPDATE projects SET status = 'Active' WHERE id = @id`);
+    res.json({ message: 'Project approved and set to Active' });
+  } else if (action === 'reject') {
+    await pool.request()
+      .input('id', sql.Int, projectId)
+      .query(`UPDATE projects SET status = 'Draft' WHERE id = @id`);
+    res.json({ message: 'Project rejected' });
+  } else {
+    res.status(400).json({ message: 'Invalid action' });
+  }
 });
 
 export default router;

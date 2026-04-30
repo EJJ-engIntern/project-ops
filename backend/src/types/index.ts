@@ -1,19 +1,9 @@
 export type Role = 'Admin' | 'PM' | 'Developer';
 
-export interface JwtPayload {
+export interface AuthUser {
   id: number;
   name: string;
-  email: string;
   role: Role;
-}
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  password_hash: string;
-  role: Role;
-  target_hours: number;
 }
 
 export interface Project {
@@ -45,4 +35,38 @@ export interface Timesheet {
   hours_logged: number;
   user_name?: string;
   task_title?: string;
+}
+
+export interface UserRecord {
+  id: number;
+  name: string;
+  email: string;
+  role: Role;
+  target_hours: number;
+}
+
+export interface Resource {
+  id: number;
+  name: string;
+  type: 'Software' | 'Hardware' | 'Human';
+  description: string;
+  available: boolean;
+}
+
+export interface ProjectResource {
+  id: number;
+  name: string;
+  type: string;
+  description: string;
+  notes: string;
+  allocated_on: string;
+}
+
+export interface Milestone {
+  id: number;
+  project_id: number;
+  title: string;
+  due_date: string;
+  status: 'Pending' | 'In Progress' | 'Completed';
+  project_name?: string;
 }
