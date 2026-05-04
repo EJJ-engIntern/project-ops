@@ -72,6 +72,7 @@ export interface Milestone {
 }
 
 export interface JwtPayload {
-  id: string;
-  email: string;
+  id: number;
+  name: string;
+  role: Role;
 }
