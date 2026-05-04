@@ -70,3 +70,8 @@ export interface Milestone {
   status: 'Pending' | 'In Progress' | 'Completed';
   project_name?: string;
 }
+
+export interface JwtPayload {
+  id: string;
+  email: string;
+}
