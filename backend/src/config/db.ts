@@ -1,18 +1,10 @@
-import sql from 'mssql';
+import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const config: sql.config = {
-  server: process.env.DB_SERVER!,
-  database: process.env.DB_NAME!,
-  user: process.env.DB_USER!,
-  password: process.env.DB_PASSWORD!,
-  options: { encrypt: true, trustServerCertificate: false }
-};
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_ANON_KEY!;
 
-const pool = new sql.ConnectionPool(config);
-const poolConnect = pool.connect();
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-poolConnect.catch((err: Error) => console.error('DB connection failed:', err));
-
-export { pool, poolConnect, sql };
+export default supabase;

@@ -1,85 +1,63 @@
 import { Router, Response } from 'express';
 import { auth, AuthRequest } from '../middleware/auth';
-import { pool, poolConnect, sql } from '../config/db';
+import supabase from '../config/db';
 
 const router = Router();
 
-// GET all resources
 router.get('/', auth(['Admin', 'PM', 'Developer']), async (_req: AuthRequest, res: Response): Promise<void> => {
-  await poolConnect;
-  const result = await pool.request().query('SELECT * FROM resources ORDER BY type, name');
-  res.json(result.recordset);
+  const { data } = await supabase.from('resources').select('*').order('type').order('name');
+  res.json(data ?? []);
 });
 
-// POST create resource
 router.post('/', auth(['Admin', 'PM']), async (req: AuthRequest, res: Response): Promise<void> => {
   const { name, type, description } = req.body as { name: string; type: string; description: string };
-  await poolConnect;
-  await pool.request()
-    .input('name', sql.NVarChar, name)
-    .input('type', sql.NVarChar, type)
-    .input('description', sql.NVarChar, description ?? '')
-    .query('INSERT INTO resources (name,type,description) VALUES (@name,@type,@description)');
+  const { error } = await supabase.from('resources').insert({ name, type, description: description ?? '' });
+  if (error) { res.status(400).json({ message: error.message }); return; }
   res.status(201).json({ message: 'Resource created' });
-});
-
-// DELETE single resource — Admin only
-// Also removes all allocations of this resource first
-router.delete('/:id', auth(['Admin']), async (req: AuthRequest, res: Response): Promise<void> => {
-  await poolConnect;
-  await pool.request()
-    .input('id', sql.Int, Number(req.params.id))
-    .query('DELETE FROM project_resources WHERE resource_id = @id');
-  await pool.request()
-    .input('id', sql.Int, Number(req.params.id))
-    .query('DELETE FROM resources WHERE id = @id');
-  res.json({ message: 'Resource deleted' });
-});
-
-// DELETE all resources — Admin only
-// Clears all allocations first, then all resources
-router.delete('/', auth(['Admin']), async (_req: AuthRequest, res: Response): Promise<void> => {
-  await poolConnect;
-  await pool.request().query('DELETE FROM project_resources');
-  await pool.request().query('DELETE FROM resources');
-  res.json({ message: 'All resources deleted' });
-});
-
-// GET resources allocated to a project
-router.get('/project/:projectId', auth(['Admin', 'PM', 'Developer']), async (req: AuthRequest, res: Response): Promise<void> => {
-  await poolConnect;
-  const result = await pool.request()
-    .input('projectId', sql.Int, Number(req.params.projectId))
-    .query(`
-      SELECT pr.id, pr.notes, pr.allocated_on, r.name, r.type, r.description
-      FROM project_resources pr
-      JOIN resources r ON pr.resource_id = r.id
-      WHERE pr.project_id = @projectId
-    `);
-  res.json(result.recordset);
-});
-
-// POST allocate resource to project
-router.post('/allocate', auth(['Admin', 'PM']), async (req: AuthRequest, res: Response): Promise<void> => {
-  const { project_id, resource_id, notes } = req.body as {
-    project_id: number; resource_id: number; notes: string;
-  };
-  await poolConnect;
-  await pool.request()
-    .input('project_id', sql.Int, project_id)
-    .input('resource_id', sql.Int, resource_id)
-    .input('notes', sql.NVarChar, notes ?? '')
-    .query('INSERT INTO project_resources (project_id,resource_id,notes) VALUES (@project_id,@resource_id,@notes)');
-  res.status(201).json({ message: 'Resource allocated' });
 });
 
 // DELETE single allocation
 router.delete('/allocate/:id', auth(['Admin', 'PM']), async (req: AuthRequest, res: Response): Promise<void> => {
-  await poolConnect;
-  await pool.request()
-    .input('id', sql.Int, Number(req.params.id))
-    .query('DELETE FROM project_resources WHERE id = @id');
+  await supabase.from('project_resources').delete().eq('id', Number(req.params.id));
   res.json({ message: 'Allocation removed' });
+});
+
+// DELETE all resources
+router.delete('/', auth(['Admin']), async (_req: AuthRequest, res: Response): Promise<void> => {
+  await supabase.from('project_resources').delete().neq('id', 0);
+  await supabase.from('resources').delete().neq('id', 0);
+  res.json({ message: 'All resources deleted' });
+});
+
+// DELETE single resource
+router.delete('/:id', auth(['Admin']), async (req: AuthRequest, res: Response): Promise<void> => {
+  await supabase.from('project_resources').delete().eq('resource_id', Number(req.params.id));
+  await supabase.from('resources').delete().eq('id', Number(req.params.id));
+  res.json({ message: 'Resource deleted' });
+});
+
+// GET allocations for a project
+router.get('/project/:projectId', auth(['Admin', 'PM', 'Developer']), async (req: AuthRequest, res: Response): Promise<void> => {
+  const { data } = await supabase
+    .from('project_resources')
+    .select('*, resources(name, type, description)')
+    .eq('project_id', Number(req.params.projectId));
+  res.json(data?.map(r => ({
+    ...r,
+    name:        (r.resources as any)?.name,
+    type:        (r.resources as any)?.type,
+    description: (r.resources as any)?.description
+  })) ?? []);
+});
+
+// POST allocate
+router.post('/allocate', auth(['Admin', 'PM']), async (req: AuthRequest, res: Response): Promise<void> => {
+  const { project_id, resource_id, notes } = req.body as {
+    project_id: number; resource_id: number; notes: string;
+  };
+  const { error } = await supabase.from('project_resources').insert({ project_id, resource_id, notes: notes ?? '' });
+  if (error) { res.status(400).json({ message: error.message }); return; }
+  res.status(201).json({ message: 'Resource allocated' });
 });
 
 export default router;
