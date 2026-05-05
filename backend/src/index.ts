@@ -23,15 +23,17 @@ const app = express();
 //   allowedHeaders: ['Content-Type', 'Authorization']
 // }));
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN === '*' ? '*' : [
-    'http://localhost:5173',
-    'https://project-1a1x73dtg-emmanuel-james-projects-92154ea8.vercel.app',
-    /\.vercel\.app$/
-  ],
-  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// app.use(cors({
+//   origin: process.env.CORS_ORIGIN === '*' ? '*' : [
+//     'http://localhost:5173',
+//     'https://project-1a1x73dtg-emmanuel-james-projects-92154ea8.vercel.app',
+//     /\.vercel\.app$/
+//   ],
+//   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+//   allowedHeaders: ['Content-Type', 'Authorization']
+// }));
+
+app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
