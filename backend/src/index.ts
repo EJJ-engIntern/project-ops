@@ -3,6 +3,21 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+
+const app = express();
+
+// completely open CORS — no restrictions
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') { res.sendStatus(200); return; }
+  next();
+});
+
+app.use(cors());
+app.use(express.json());
+
 import authRoutes from './routes/auth';
 import projectRoutes from './routes/projects';
 import taskRoutes from './routes/tasks';
@@ -10,31 +25,6 @@ import timesheetRoutes from './routes/timesheets';
 import userRoutes from './routes/users';
 import resourceRoutes from './routes/resources';
 import milestoneRoutes from './routes/milestones';
-
-const app = express();
-
-// app.use(cors({
-//   origin: [
-//     'http://localhost:5173',
-//     'https://project-1a1x73dtg-emmanuel-james-projects-92154ea8.vercel.app',
-//     /\.vercel\.app$/
-//   ],
-//   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
-
-// app.use(cors({
-//   origin: process.env.CORS_ORIGIN === '*' ? '*' : [
-//     'http://localhost:5173',
-//     'https://project-1a1x73dtg-emmanuel-james-projects-92154ea8.vercel.app',
-//     /\.vercel\.app$/
-//   ],
-//   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
-
-app.use(cors());
-app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
