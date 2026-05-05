@@ -11,18 +11,22 @@ export default function Login() {
   const { login } = useAuth();
   const navigate  = useNavigate();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-    try {
-      const res = await api.post<{ token: string; user: AuthUser }>('/auth/login', { email, password });
-      login(res.data.token, res.data.user);
-      navigate('/dashboard');
-    } catch {
-      setError('Invalid email or password');
-    }
-  };
-
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+  setError('');
+  try {
+    const res = await api.post<{ token: string; user: AuthUser }>('/auth/login', { email, password });
+    console.log('Login response:', res.data);
+    login(res.data.token, res.data.user);
+    console.log('Token stored:', localStorage.getItem('token'));
+    console.log('User stored:', localStorage.getItem('user'));
+    console.log('Navigating to dashboard...');
+    navigate('/dashboard');
+  } catch (err: any) {
+    console.log('Error:', err?.response?.data ?? err?.message);
+    setError(err?.response?.data?.message ?? 'Login failed');
+  }
+};
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-sm p-8">
