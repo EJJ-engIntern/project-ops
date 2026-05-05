@@ -13,26 +13,18 @@ import milestoneRoutes from './routes/milestones';
 
 const app = express();
 
-// app.use(cors({
-//   origin: 'http://localhost:5173',
-//   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
-
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'https://your-app.vercel.app'
+    'https://project-1a1x73dtg-emmanuel-james-projects-92154ea8.vercel.app',
+    /\.vercel\.app$/
   ],
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-
 app.use(express.json());
-app.get("/", (req, res) => {
-  res.send("API running");
-});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
